@@ -7,10 +7,11 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"time"
 	"strings"
 )
 
-var SINGLE = false
+var SINGLE = true
 
 // simulate a client with this command :
 // curl --trace trace.log -k --cacert ./CAcert.crt --cert ./cert.crt --key ./privateKey.key https://localhost:1234/
@@ -22,7 +23,7 @@ func main() {
 	var tlsConfig *tls.Config
 	if SINGLE {
 		// tls config single way
-		cert, err := tls.LoadX509KeyPair("./cert.crt", "./privateKey.key")
+		cert, err := tls.LoadX509KeyPair("./cert2.crt", "./privateKey2.key")
 		if err != nil { // only client in insecure mode
 			fmt.Println("! Unable to Load certificate !")
 			tlsConfig = &tls.Config{InsecureSkipVerify: true}
@@ -53,24 +54,36 @@ func main() {
 		tlsConfig.BuildNameToCertificate()
 	}
 
-	CONNECT := "127.0.0.1:1234"
-	c, err := tls.Dial("tcp", CONNECT, tlsConfig)
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-
 	for {
-		reader := bufio.NewReader(os.Stdin)
-		fmt.Print(">> ")
-		text, _ := reader.ReadString('\n')
-		fmt.Fprintf(c, text+"\n")
-
-		message, _ := bufio.NewReader(c).ReadString('\n')
-		fmt.Print("->: " + message)
-		if strings.TrimSpace(string(text)) == "STOP" {
-			fmt.Println("TCP client exiting...")
+		fmt.Println("init new connection")
+		CONNECT := "127.0.0.1:1234"
+		c, err := tls.Dial("tcp", CONNECT, tlsConfig)
+		if err != nil {
+			fmt.Println(err)
 			return
 		}
+
+		for {
+			reader := bufio.NewReader(os.Stdin)
+			fmt.Print(">> ")
+			text, err := reader.ReadString('\n')
+			if err != nil {
+				fmt.Println("error reading ", err)
+			}
+			fmt.Fprintf(c, text+"\n")
+
+			message, err := bufio.NewReader(c).ReadString('\n')
+			if err != nil {
+				fmt.Println("cannot read anything", err)
+				time.Sleep(time.Duration(1) * time.Second)
+				break
+			}
+			fmt.Print("->: " + message)
+			if strings.TrimSpace(string(text)) == "STOP" {
+				fmt.Println("TCP client exiting...")
+				return
+			}
+		}
 	}
+
 }
