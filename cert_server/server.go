@@ -19,22 +19,8 @@ var count = 0
 var SINGLE = false
 
 func handleSingleConnection(c *tls.Conn) {
-	fmt.Print(".")
-	for {
-		netData, err := bufio.NewReader(c).ReadString('\n')
-		if err != nil {
-			fmt.Println("{{{", err)
-			return
-		}
-
-		temp := strings.TrimSpace(string(netData))
-		if temp == "STOP" {
-			break
-		}
-		fmt.Println(temp)
-		counter := strconv.Itoa(count) + "\n"
-		c.Write([]byte(string(counter)))
-	}
+	c.Write([]byte("STOP\n"))
+	fmt.Println("stop written")
 	c.Close()
 }
 
@@ -102,8 +88,6 @@ func main() {
 
 	SinglePeers := make(map[string]bool)
 	var tlsConn *tls.Conn
-	// tlsConn = tls.Server(c, tlsConfigSingle)
-	// fmt.Println("we are now single way")
 
 	for {
 		c, err := l.Accept()
