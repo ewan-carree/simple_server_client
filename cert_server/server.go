@@ -8,38 +8,38 @@ import (
 	"io/ioutil"
 	"net"
 	"os"
-	"strconv"
+	// "strconv"
 	"strings"
 )
 
 // program based on this site :
 // https://www.linode.com/docs/guides/developing-udp-and-tcp-clients-and-servers-in-go/#test-the-concurrent-tcp-server
 
-var count = 0
+// var count = 0
 var SINGLE = false
 
 func handleSingleConnection(c *tls.Conn) {
 	c.Write([]byte("STOP\n"))
-	fmt.Println("stop written")
+	fmt.Println("cert request signed - ready for doubleway")
 	c.Close()
 }
 
 func handleDoubleConnection(c *tls.Conn) {
-	fmt.Print(".")
+	fmt.Println("inside doubleway loop")
 	for {
 		netData, err := bufio.NewReader(c).ReadString('\n')
 		if err != nil {
-			fmt.Println("{{{", err)
-			return
+			fmt.Println("error reading double :", err)
+			break
 		}
 
 		temp := strings.TrimSpace(string(netData))
-		if temp == "STOP" {
-			break
-		}
+		// if temp == "STOP" {
+		// 	break
+		// }
 		fmt.Println(temp)
-		counter := strconv.Itoa(count) + "\n"
-		c.Write([]byte(string(counter)))
+		// counter := strconv.Itoa(count) + "\n"
+		// c.Write([]byte(string(counter)))
 	}
 	c.Close()
 }
@@ -51,7 +51,7 @@ func main() {
 	PORT := ":1234"
 	l, err := net.Listen("tcp", PORT)
 	if err != nil {
-		fmt.Println("!!!", err)
+		fmt.Println("error listen :", err)
 		return
 	}
 	defer l.Close()
@@ -74,7 +74,7 @@ func main() {
 	// tls Double way
 	CAcert, err := ioutil.ReadFile("../cert_server/CAcert.crt")
 	if err != nil {
-		fmt.Println("00000000")
+		fmt.Println("error read file cacert :", err)
 	}
 	caCertPool := x509.NewCertPool()
 	caCertPool.AppendCertsFromPEM(CAcert)
@@ -95,24 +95,26 @@ func main() {
 			fmt.Printf("serverShoset accept error: %s", err)
 			continue
 		}
+
 		address_port := c.RemoteAddr().String()
 		address_parts := strings.Split(address_port, ":")
 		address := address_parts[0]
-		fmt.Println("address detected : ", address)
+		// fmt.Println("address detected : ", address)
+		
 		if SinglePeers[address] {
-			fmt.Println("trying single way")
+			// fmt.Println("trying single way")
 			tlsConn = tls.Server(c, tlsConfigSingle)
 			_, err = tlsConn.Write([]byte("hello single\n"))
 			delete(SinglePeers, address)
 			if err == nil {
-				fmt.Println("going for single")
+				// fmt.Println("going for single")
 				go handleSingleConnection(tlsConn)
 			} else {
 				fmt.Println("err single : ", err)
 				tlsConn.Close()
 			}
 		} else {
-			fmt.Println("trying double way")
+			// fmt.Println("trying double way")
 			tlsConn = tls.Server(c, tlsConfigDouble) // create the securised connection protocol
 			_, err = tlsConn.Write([]byte("hello double\n"))
 			if err == nil {
@@ -123,6 +125,6 @@ func main() {
 				tlsConn.Close()
 			}
 		}
-		count++
+		// count++
 	}
 }
