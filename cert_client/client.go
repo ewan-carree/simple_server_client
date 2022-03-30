@@ -56,25 +56,26 @@ func main() {
 			}
 
 			for {
-				// reader := bufio.NewReader(os.Stdin)
-				// text, err := reader.ReadString('\n')
-				// if err != nil {
-				// 	fmt.Println("error reading ", err)
-				// }
-				// fmt.Fprintf(c, text+"\n")
-
 				message, err := bufio.NewReader(c).ReadString('\n')
 				if err != nil {
 					fmt.Println("cannot read anything", err)
 					// time.Sleep(time.Duration(1) * time.Second)
 					break
 				}
-				// fmt.Print("->: " + message)
-				if strings.TrimSpace(string(message)) == "STOP" {
-					fmt.Println("cert request signed")
+
+				fmt.Println("< " + message)
+				if strings.TrimSpace(string(message)) == "REQUEST_SIGNED" {
 					SINGLE = false
 					break
 				}
+
+				fmt.Print("> ")
+				reader := bufio.NewReader(os.Stdin)
+				text, err := reader.ReadString('\n')
+				if err != nil {
+					fmt.Println("error reading ", err)
+				}
+				fmt.Fprintf(c, text+"\n")
 			}
 		} else {
 			fmt.Println("init new double connection")

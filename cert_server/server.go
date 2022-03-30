@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"net"
 	"os"
+
 	// "strconv"
 	"strings"
 )
@@ -19,9 +20,25 @@ import (
 var SINGLE = false
 
 func handleSingleConnection(c *tls.Conn) {
-	c.Write([]byte("STOP\n"))
-	fmt.Println("cert request signed - ready for doubleway")
-	c.Close()
+	for {
+		netData, err := bufio.NewReader(c).ReadString('\n')
+		if err != nil {
+			fmt.Println("error reading single :", err)
+			break
+		}
+		fmt.Println("<", netData)
+
+		temp := strings.TrimSpace(string(netData))
+		if temp == "CERT_REQUEST" {
+			c.Write([]byte("REQUEST_SIGNED\n")) // certificats créés
+			fmt.Println("... signing CERT_REQUEST ...")
+			c.Close()
+			break
+		} else {
+			c.Write([]byte("unknown command\n")) // certificats créés
+		}
+	}
+
 }
 
 func handleDoubleConnection(c *tls.Conn) {
@@ -37,7 +54,7 @@ func handleDoubleConnection(c *tls.Conn) {
 		// if temp == "STOP" {
 		// 	break
 		// }
-		fmt.Println(temp)
+		fmt.Println("<<", temp)
 		// counter := strconv.Itoa(count) + "\n"
 		// c.Write([]byte(string(counter)))
 	}
@@ -100,7 +117,7 @@ func main() {
 		address_parts := strings.Split(address_port, ":")
 		address := address_parts[0]
 		// fmt.Println("address detected : ", address)
-		
+
 		if SinglePeers[address] {
 			// fmt.Println("trying single way")
 			tlsConn = tls.Server(c, tlsConfigSingle)
@@ -118,7 +135,7 @@ func main() {
 			tlsConn = tls.Server(c, tlsConfigDouble) // create the securised connection protocol
 			_, err = tlsConn.Write([]byte("hello double\n"))
 			if err == nil {
-				go handleDoubleConnection(tlsConn)				
+				go handleDoubleConnection(tlsConn)
 			} else {
 				fmt.Println("err double : ", err)
 				SinglePeers[address] = true
